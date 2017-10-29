@@ -1,16 +1,13 @@
-#/bin/bash
-TRAIN_FILE=adult.data.csv
-EVAL_FILE=adult.test.csv
-
-GCS_TRAIN_FILE=gs://liamog_udacity/bh_cloning/data/x_train.pickle
-GCS_EVAL_FILE=gs://liamog_udacity/bh_cloning/data/y_train.pickle
-
-gsutil cp $GCS_TRAIN_FILE $TRAIN_FILE
-gsutil cp $GCS_EVAL_FILE $EVAL_FILE
-
-JOB_DIR=bh_cloning_keras
+#!/bin/bash
+pushd .
+cd "$(dirname "$0")"
+X_TRAIN_FILE='../data/proccessed_and_pickled/x_train.pickle'
+Y_TRAIN_FILE='../data/proccessed_and_pickled/y_train.pickle'
+JOB_DIR=../output/
 TRAIN_STEPS=1000
-python trainer/task.py --train-files $TRAIN_FILE \
-                       --eval-files $EVAL_FILE \
+python 'trainer/task.py' --x_train_file $X_TRAIN_FILE \
+                       --y_train_file $Y_TRAIN_FILE \
                        --job-dir $JOB_DIR \
+                       --num-epochs 7 \h5py
                        --train-steps $TRAIN_STEPS
+popd
