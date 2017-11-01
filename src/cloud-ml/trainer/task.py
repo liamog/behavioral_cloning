@@ -1,17 +1,22 @@
 import argparse
-import glob
-import json
 import os
 import numpy as np
 
-import keras
-from keras.models import load_model
+from io import BytesIO
 import model
 from tensorflow.python.lib.io import file_io
 
 
 FILE_PATH = 'checkpoint.{epoch:02d}.hdf5'
 BH_CLONE_MODEL = 'bh_clone.hdf5'
+
+
+def load_data(file):
+    if file.startswith("gs://"):
+        f = BytesIO(file_io.read_file_to_string(file, binary_mode=True))
+        return np.load(f)
+    else:
+        return np.load(file)
 
 
 def dispatch(x_train_file,
@@ -28,16 +33,15 @@ def dispatch(x_train_file,
         os.makedirs(job_dir)
     except:
         pass
-    print (x_train_file)
-    X_train = np.load(x_train_file)
-    y_train = np.load(y_train_file)
+
+    X_train = load_data(x_train_file)
+    y_train = load_data(y_train_file)
 
     bh_clone_model.fit(X_train,
                        y_train,
                        validation_split=0.2,
                        shuffle=True,
                        epochs=num_epochs)
-    print(job_dir)
     # Unhappy hack to work around h5py not being able to write to GCS.
     # Force snapshots and saves to local filesystem, then copy them over
     # to GCS.
@@ -48,8 +52,6 @@ def dispatch(x_train_file,
         bh_clone_model.save(os.path.join(job_dir, BH_CLONE_MODEL))
 
 # h5py workaround: copy local models over to GCS if the job_dir is GCS.
-
-
 def copy_file_to_gcs(job_dir, file_path):
     with file_io.FileIO(file_path, mode='r') as input_f:
         with file_io.FileIO(os.path.join(job_dir, file_path),
