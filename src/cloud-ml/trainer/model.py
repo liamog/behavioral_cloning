@@ -10,7 +10,7 @@ def model_fn(learning_rate):
     model = Sequential()
     model.add(Lambda(lambda x: x / 255.0 - 0.5, input_shape=input_shape))
     model.add(Conv2D(24, (5, 5), strides=(2, 2), activation="relu"))
-    model.add(Dropout(0.5))
+    model.add(Dropout(0.25))
     model.add(Conv2D(36, (5, 5), strides=(2, 2), activation="relu"))
     model.add(Conv2D(48, (5, 5), strides=(2, 2), activation="relu"))
     model.add(Conv2D(64, (3, 3), activation="relu"))
@@ -27,5 +27,5 @@ def compile_model(model, learning_rate):
     opt = Adam(lr=learning_rate, beta_1=0.9,
                beta_2=0.999, epsilon=1e-08, decay=0.0)
     model.compile(loss='mse',
-                  optimizer=opt)
+                  optimizer=opt, metrics=['accuracy'])
     return model

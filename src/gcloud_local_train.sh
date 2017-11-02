@@ -2,13 +2,13 @@
 pushd .
 cd "$(dirname "$0")"
 
-X_TRAIN_FILE='../data/proccessed_and_pickled/x_train.pickle'
-Y_TRAIN_FILE='../data/proccessed_and_pickled/y_train.pickle'
+TRAINING_FILES='../data/proccessed_and_pickled/swerving_full_train.npz ../data/proccessed_and_pickled/lap_with_mouse_train.npz ../data/proccessed_and_pickled/track1_train.npz'
+VALIDAION_FILES='../data/proccessed_and_pickled/swerving_full_valid.npz ../data/proccessed_and_pickled/lap_with_mouse_valid.npz ../data/proccessed_and_pickled/track1_valid.npz'
 JOB_DIR=../output/
-TRAIN_STEPS=1000
-python 'cloud-ml/trainer/task.py' --x_train_file $X_TRAIN_FILE \
-                       --y_train_file $Y_TRAIN_FILE \
+
+python 'cloud-ml/trainer/task.py' --training_files $TRAINING_FILES \
+                       --validation_files $VALIDAION_FILES \
                        --job-dir $JOB_DIR \
-                       --num-epochs 7 \
+                       --num-epochs 5 \
                        --h5py
 popd
