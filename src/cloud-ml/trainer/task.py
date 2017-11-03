@@ -2,8 +2,6 @@ import argparse
 import os
 import numpy as np
 from os import walk
-import matplotlib.pyplot as plt
-import sklearn as sk
 
 from io import BytesIO
 import model
