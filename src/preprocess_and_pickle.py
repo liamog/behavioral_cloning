@@ -4,11 +4,12 @@ import numpy as np
 import preprocess as prep
 import random
 from sklearn.cross_validation import train_test_split
+from os import makedirs
 
 CAMERA_ANGLE_CORRECTION = 0.15
 
 
-def crop_image(folder, source_path):
+def prep_image(folder, source_path):
     source_path = source_path
     filename = source_path.split('/')[-1]
     image_path = folder + '/IMG/' + filename
@@ -44,7 +45,7 @@ def process_files_in_folder(folder):
 
         # center image
         measurements.append(measurement)
-        center_image = crop_image(folder, line[0])
+        center_image =prep_image(folder, line[0])
         images.append(center_image)
 
         # center image flipped horizontally.
@@ -53,26 +54,38 @@ def process_files_in_folder(folder):
         images.append(center_image_mirror)
 
         # left image
+        left_image = prep_image(folder, line[1])
         measurements.append(measurement + CAMERA_ANGLE_CORRECTION)
-        images.append(crop_image(folder, line[1]))
+        images.append(left_image)
+        # left image flipped
+        measurements.append((measurement + CAMERA_ANGLE_CORRECTION) * -1.0)
+        images.append(cv2.flip(left_image, 1))
 
         # right image
+        right_image = prep_image(folder, line[2])
         measurements.append(measurement - CAMERA_ANGLE_CORRECTION)
-        images.append(crop_image(folder, line[2]))
+        images.append(right_image)
+        
+        # right image mirrored
+        measurements.append((measurement - CAMERA_ANGLE_CORRECTION) * -1.0)
+        images.append(cv2.flip(right_image, 1))
+
     print("total = {}, skipped = {}, included(+augs)={}".format(len(
         lines), len(lines) - len(images) / 4, len(images)))
     return images, measurements
 
 
-folders = ["gentle_swerving",
-           "right_turn",
-           "lap2_with_mouse",
-           "lap_with_mouse",
+folders = ["bridge",
            "cc_lap_with_mouse",
            "focused_center_on_turns",
+           "gentle_swerving",
+           "lap2_with_mouse",
+           "lap_with_mouse",
+           "right_turn",
            ]
 
 for folder in folders:
+
     print ('processing ' + folder)
     images, measurements = process_files_in_folder('../data/raw/' + folder)
 
@@ -81,6 +94,7 @@ for folder in folders:
     y = np.array(measurements)
     x_train, x_valid, y_train, y_valid = train_test_split(x, y, test_size=0.3)
 
+    makedirs("../data/proccessed_and_pickled", exist_ok=True)
     np.savez(
         '../data/proccessed_and_pickled/' + folder + '_train.npz',
         x=x_train,
