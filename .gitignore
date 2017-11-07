@@ -5,3 +5,4 @@ scratch*
 
 
 src/*.hdf5
+auto_drive/*
