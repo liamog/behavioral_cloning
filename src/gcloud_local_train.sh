@@ -2,13 +2,29 @@
 pushd .
 cd "$(dirname "$0")"
 
-TRAINING_FILES='../data/proccessed_and_pickled/right_turn_train.npz ../data/proccessed_and_pickled/swerving_trimmed_train.npz ../data/proccessed_and_pickled/lap_with_mouse_train.npz ../data/proccessed_and_pickled/track1_train.npz'
-VALIDAION_FILES='../data/proccessed_and_pickled/right_turn_valid.npz ../data/proccessed_and_pickled/swerving_trimmed_valid.npz ../data/proccessed_and_pickled/lap_with_mouse_valid.npz ../data/proccessed_and_pickled/track1_valid.npz'
+DATA_DIR="../data/proccessed_and_pickled"
+JOB_DIR=$DATA_DIR"_$now/output"
+
+FILES=( right_turn focused_center_on_turns lap_with_mouse gentle_swerving lap2_with_mouse )
+# FILES=( lap_with_mouse gentle_swerving )
+
+TRAINING_FILES=""
+VALIDATION_FILES=""
+
+for var in "${FILES[@]}"
+do
+  TRAINING_FILES+="$DATA_DIR/${var}_train.npz "
+  VALIDATION_FILES+="$DATA_DIR/${var}_valid.npz "
+done
+
+echo $TRAINING_FILES
+echo $VALIDATION_FILES
+
 JOB_DIR=../output/
 
 python 'cloud-ml/trainer/task.py' --training_files $TRAINING_FILES \
-                       --validation_files $VALIDAION_FILES \
+                       --validation_files $VALIDATION_FILES \
                        --job-dir $JOB_DIR \
-                       --num-epochs 1 \
+                       --num-epochs 3 \
                        --h5py
 popd

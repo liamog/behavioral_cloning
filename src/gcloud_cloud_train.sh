@@ -3,16 +3,25 @@ pushd .
 cd "$(dirname "$0")"
 now=$(date +"%Y%m%d_%H%M%S")
 JOB_NAME="bh_clone_$now"
-GS_DIR="gs://liamog_udacity/bh_cloning"
+DATA_DIR="gs://liamog_udacity/bh_cloning"
 
-JOB_DIR=$GS_DIR"_$now/output"
+JOB_DIR=$DATA_DIR"_$now/output"
+FILES=( right_turn cc_lap_with_mouse lap_with_mouse lap2_with_mouse gentle_swerving track1 track2)
 
-TRAINING_FILES="$GS_DIR/right_turn_train.npz $GS_DIR/swerving_trimmed_train.npz $GS_DIR/lap_with_mouse_train.npz $GS_DIR/track1_train.npz"
-VALIDATION_FILES="$GS_DIR/right_turn_valid.npz $GS_DIR/swerving_trimmed_valid.npz $GS_DIR/lap_with_mouse_valid.npz $GS_DIR/track1_valid.npz"
+TRAINING_FILES=""
+VALIDATION_FILES=""
+
+for var in "${FILES[@]}"
+do
+  TRAINING_FILES+="$DATA_DIR/${var}_train.npz "
+  VALIDATION_FILES+="$DATA_DIR/${var}_valid.npz "
+  # do something on $var
+done
 
 echo $TRAINING_FILES
 echo $VALIDATION_FILES
-EPOCHS=5
+#From testing, looks like we get our best validation result after 2 epcohs.
+EPOCHS=2
 
 gcloud ml-engine jobs submit training $JOB_NAME \
                                     --stream-logs \

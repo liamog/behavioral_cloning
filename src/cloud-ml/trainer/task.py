@@ -34,7 +34,9 @@ def generator(files, batch_size=32):
     while 1:  # Loop forever so the generator never terminates
         shuffle(files)
         for file in files:
+            print()
             print("Serving from " + file)
+            print()
             uncompressed = load_data(file)
             X_samples = uncompressed['x']
             y_samples = uncompressed['y']
@@ -53,7 +55,7 @@ def dispatch(training_files,
              num_epochs,
              ):
     bh_clone_model = model.model_fn(learning_rate)
-    local_job_dir = "output"
+    local_job_dir = "local_output"
     try:
         os.makedirs(local_job_dir)
     except:
@@ -64,14 +66,13 @@ def dispatch(training_files,
         training_len, training_steps))
     print('validation_size={}, validation_steps={}'.format(
         validation_len, validation_steps))
+
     # compile and train the model using the generator function
     train_generator = generator(training_files, batch_size=32)
     validation_generator = generator(validation_files, batch_size=32)
-    # uncompressed = load_data(train_file)
-    # X_train = uncompressed['x']
-    # y_train = uncompressed['y']
+
     chceckpoint_file = local_job_dir + \
-        "/weights-improvement-{epoch:02d}-{val_acc:.2f}.hdf5"
+        "/weights-improvement--{epoch:02d}-{val_acc:.2f}.hdf5"
     checkpoint = ModelCheckpoint(
         chceckpoint_file,
         monitor='val_acc',

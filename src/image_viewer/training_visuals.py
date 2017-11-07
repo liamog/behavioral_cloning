@@ -7,6 +7,7 @@ import sys
 
 import os
 import platform
+import numpy as np
 
 IMAGE_COL = 0
 SELECTED_COL = 7
@@ -17,20 +18,16 @@ class DrawFrame(wx.Frame):
 
     def __init__(self, *args, **kwargs):
         wx.Frame.__init__(self, *args, **kwargs)
-        self.lines = []
-        self.selectedlines = []
         self.image_index = 0
+        self.X_samples = []
+        self.y_samples = []
 
         self.CreateMenu()
         self.CreateWidgets()
         self.CreateBindings()
         self.SetupLayout()
         # create the image holder:
-
         self.Show()
-        # self.filename = os.path.abspath(
-        #     "../../data/raw/swerving_full copy/driving_log.csv")
-        # self.LoadData()
 
     def CreateMenu(self):
         # Create the menubar
@@ -51,9 +48,6 @@ class DrawFrame(wx.Frame):
         item = wx.MenuItem(menu, wx.ID_ANY, "&Open", "Open file")
         self.Bind(wx.EVT_MENU, self.OnFileOpen, item)
         menu.Append(item)
-        item = wx.MenuItem(menu, wx.ID_ANY, "&Save", "Save file")
-        self.Bind(wx.EVT_MENU, self.OnFileSave, item)
-        menu.Append(item)
         self.SetMenuBar(menuBar)
         menuBar.Append(menu, "&File")
 
@@ -65,7 +59,7 @@ class DrawFrame(wx.Frame):
         self.slider = wx.Slider(self,
                                 value=0,
                                 minValue=0,
-                                maxValue=len(self.lines),
+                                maxValue=len(self.X_samples),
                                 pos=wx.DefaultPosition,
                                 size=wx.DefaultSize,
                                 style=wx.SL_HORIZONTAL)
@@ -74,7 +68,6 @@ class DrawFrame(wx.Frame):
         self.b2 = wx.Button(self, label="<")
         self.b3 = wx.Button(self, label=">")
         self.b4 = wx.Button(self, label=">>")
-        self.selected = wx.CheckBox(self, label="Selected")
 
     def CreateBindings(self):
         self.panel.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
@@ -98,7 +91,6 @@ class DrawFrame(wx.Frame):
         btnbox.Add(self.b3, 0, wx.LEFT | wx.RIGHT, 5)
         btnbox.Add(self.b4, 0, wx.LEFT | wx.RIGHT, 5)
         self.Sizer.Add(btnbox, 0, wx.CENTER, 5)
-        self.Sizer.Add(self.selected, 0, wx.CENTER, 5)
         # Set font sizes
         self.steering_angle_st.SetFont(
             wx.FFont(20, wx.FONTFAMILY_SWISS, wx.FONTFLAG_BOLD))
@@ -115,25 +107,10 @@ class DrawFrame(wx.Frame):
     def OnKeyDown(self, event):
         keycode = event.GetKeyCode()
 
-        if (keycode == 89):
-            # y
-            self.lines[self.image_index][SELECTED_COL] = 1
-            self.Forward(1)
-        if (keycode == 78):
-            # n
-            self.lines[self.image_index][SELECTED_COL] = 0
-            self.Forward(1)
-
         if (keycode == 316):
             self.Forward(1)
         if (keycode == 314):
             self.Backward(1)
-        if keycode == wx.WXK_SPACE:
-            if (int(self.lines[self.image_index][SELECTED_COL]) == 1):
-                self.lines[self.image_index][SELECTED_COL] = 0
-            else:
-                self.lines[self.image_index][SELECTED_COL] = 1
-            self.Refresh()
         event.Skip()
 
     def OnNext(self, evt):
@@ -144,8 +121,8 @@ class DrawFrame(wx.Frame):
 
     def Forward(self, skip):
         self.image_index += skip
-        if (self.image_index >= len(self.lines) - 1):
-            self.image_index = len(self.lines) - 1
+        if (self.image_index >= len(self.X_samples) - 1):
+            self.image_index = len(self.X_samples) - 1
         self.Refresh()
 
     def OnPrev(self, evt):
@@ -166,25 +143,19 @@ class DrawFrame(wx.Frame):
         return result
 
     def Refresh(self):
-        selected = int(self.lines[self.image_index][SELECTED_COL])
-        if selected == 1:
-            self.selected.SetValue(wx.CHK_CHECKED)
-        else:
-            self.selected.SetValue(wx.CHK_UNCHECKED)
-
-        source_path = self.lines[self.image_index][0]
-        filename = source_path.split('/')[-1]
-        image_path = self.image_dir + filename
-        image = wx.Image(image_path, wx.BITMAP_TYPE_ANY)
-        bmp = self.scale_image_to_bitmap(
-            image, image.GetWidth() * 1.5, image.GetHeight() * 1.5)
+        image_data = self.X_samples[self.image_index]
+        image_shape = np.shape(image_data)
+        image = wx.EmptyImage(image_shape[1], image_shape[0])
+        image.SetData(image_data.tostring())
+        bmp = image.ConvertToBitmap()
         self.image.SetBitmap(bmp)
 
         self.slider.SetValue(self.image_index)
         self.iamge_index_st.SetLabel(
-            'Index = {} of {}'.format(self.image_index, len(self.lines) - 1))
+            'Index = {} of {}'.format(
+                self.image_index, len(self.X_samples) - 1))
 
-        steering_angle_st_value = self.lines[self.image_index][ANGLE_COL]
+        steering_angle_st_value = self.y_samples[self.image_index]
         self.steering_angle_st.SetLabel(
             'Steering angle= {}'.format(steering_angle_st_value))
 
@@ -193,8 +164,8 @@ class DrawFrame(wx.Frame):
 
     def OnFileOpen(self, evt):
         path = ""
-        dlg = wx.FileDialog(self, "Choose A CSV File",
-                            ".", "", "*.csv", wx.FD_OPEN)
+        dlg = wx.FileDialog(self, "Choose a numpy File",
+                            ".", "", "*.npz", wx.FD_OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             path = dlg.GetPath()
         else:
@@ -203,38 +174,22 @@ class DrawFrame(wx.Frame):
 
         dlg.Destroy()
         self.filename = path
+
         self.LoadData()
 
     def OnFileSave(self, evt):
         self.SaveData()
 
     def LoadData(self):
-        self.lines = []
-        if not os.path.isfile(self.filename):
-            return
-        self.image_dir = os.path.dirname(self.filename) + '/IMG/'
+        uncompressed = np.load(self.filename)
+        self.X_samples = uncompressed['x']
+        self.y_samples = uncompressed['y']
 
-        with open(self.filename, 'rb') as csvfile:
-            reader = csv.reader(csvfile)
-            for line in reader:
-                if not line:
-                    continue
-                # if first time opening this file,
-                # add the selected column as unselected.
-                if(len(line) == 7):
-                    line.append(0)
-                self.lines.append(line)
-        self.slider.SetMax(len(self.lines))
+        self.slider.SetMax(len(self.X_samples))
         self.image_index = 0
         self.Refresh()
 
-    def SaveData(self):
-        with open(self.filename, 'wb') as csvfile:
-            writer = csv.writer(csvfile)
-            for line in self.lines:
-                writer.writerow(line)
-
 
 app = wx.App(False)
-F = DrawFrame(None, title="Image and Angle Selection App", size=(700, 700))
+F = DrawFrame(None, title="Training data visualization App", size=(700, 700))
 app.MainLoop()

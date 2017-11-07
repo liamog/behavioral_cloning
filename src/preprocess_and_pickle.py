@@ -5,7 +5,7 @@ import preprocess as prep
 import random
 from sklearn.cross_validation import train_test_split
 
-CAMERA_ANGLE_CORRECTION = 0.2
+CAMERA_ANGLE_CORRECTION = 0.15
 
 
 def crop_image(folder, source_path):
@@ -32,10 +32,14 @@ def process_files_in_folder(folder):
             if not line:
                 continue
             lines.append(line)
-
     images = []
     measurements = []
     for line in lines:
+        if (len(line) == 8):
+            if int(line[7]) == 0:
+                # skip this file.
+                continue
+
         measurement = float(line[3])
 
         # center image
@@ -55,13 +59,17 @@ def process_files_in_folder(folder):
         # right image
         measurements.append(measurement - CAMERA_ANGLE_CORRECTION)
         images.append(crop_image(folder, line[2]))
+    print("total = {}, skipped = {}, included(+augs)={}".format(len(
+        lines), len(lines) - len(images) / 4, len(images)))
     return images, measurements
 
 
-folders = ["swerving_full",
+folders = ["gentle_swerving",
+           "right_turn",
+           "lap2_with_mouse",
            "lap_with_mouse",
-           "track1",
-           "track2",
+           "cc_lap_with_mouse",
+           "focused_center_on_turns",
            ]
 
 for folder in folders:
@@ -73,11 +81,11 @@ for folder in folders:
     y = np.array(measurements)
     x_train, x_valid, y_train, y_valid = train_test_split(x, y, test_size=0.3)
 
-    np.savez_compressed(
+    np.savez(
         '../data/proccessed_and_pickled/' + folder + '_train.npz',
         x=x_train,
         y=y_train)
-    np.savez_compressed(
+    np.savez(
         '../data/proccessed_and_pickled/' + folder + '_valid.npz',
         x=x_valid,
         y=y_valid)
