@@ -5,28 +5,21 @@ from keras.optimizers import Adam
 input_shape = (80, 320, 3)
 
 
-def model_fn(learning_rate):
+def model_fn():
     """Create a Keras Sequential model with layers."""
     model = Sequential()
-    model.add(Lambda(lambda x: (x / 255.0) - 0.5, input_shape=input_shape))
-    model.add(Conv2D(24, (5, 5), activation="relu"))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Lambda(lambda x: x / 255.0 - 0.5, input_shape=input_shape))
+    model.add(Convolution2D(24, 5, 5, subsample=(2, 2), activation="relu"))
     model.add(Dropout(0.25))
-    model.add(Conv2D(36, (5, 5), activation="relu"))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
-    model.add(Conv2D(48, (5, 5), activation="relu"))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
-    model.add(Conv2D(64, (3, 3), activation="relu"))
-    model.add(Conv2D(64, (3, 3), activation="relu"))
+    model.add(Convolution2D(36, 5, 5, subsample=(2, 2), activation="relu"))
+    model.add(Convolution2D(48, 5, 5, subsample=(2, 2), activation="relu"))
+    model.add(Convolution2D(64, 3, 3, activation="relu"))
+    model.add(Convolution2D(64, 3, 3, activation="relu"))
     model.add(Flatten())
     model.add(Dense(100))
-    model.add(Dropout(0.25))
     model.add(Dense(50))
-    model.add(Dense(10))
     model.add(Dense(1))
-    compile_model(model, learning_rate)
+    compile_model(model)
     return model
 
 
